@@ -1,6 +1,56 @@
 import { useEffect, useRef, useState } from "react";
 import * as deepar from "deepar";
 
+// Define available filters
+const FILTERS = [
+  { name: "None", path: "" },
+  {
+    name: "Viking Helmet",
+    path: "/filters/VikingHelmetPBR/viking_helmet.deepar",
+  },
+  { name: "Vendetta Mask", path: "/filters/VendettaMask/Vendetta_Mask.deepar" },
+  { name: "Stallone", path: "/filters/Stallone/Stallone.deepar" },
+  { name: "Snail", path: "/filters/Snail/Snail.deepar" },
+  {
+    name: "Pixel Heart",
+    path: "/filters/PixelHeartParticles/8bitHearts.deepar",
+  },
+  { name: "Ping Pong", path: "/filters/PingPongMinigame/Ping_Pong.deepar" },
+  {
+    name: "Makeup Split",
+    path: "/filters/MakeupLookw:SliptScreenEffect/Split_View_Look.deepar",
+  },
+  {
+    name: "Makeup Simple",
+    path: "/filters/MakeupLookSimple/MakeupLook.deepar",
+  },
+  { name: "Humanoid", path: "/filters/Humanoid/Humanoid.deepar" },
+  { name: "Hope", path: "/filters/Hope/Hope.deepar" },
+  {
+    name: "Galaxy",
+    path: "/filters/GalaxyBackground/galaxy_background.deepar",
+  },
+  { name: "Flower Face", path: "/filters/FlowerFace/flower_face.deepar" },
+  { name: "Fire Effect", path: "/filters/FireEffect/Fire_Effect.deepar" },
+  {
+    name: "Emotions Exaggerator",
+    path: "/filters/EmotionsExaggerator/Emotions_Exaggerator.deepar",
+  },
+  { name: "Emotion Meter", path: "/filters/EmotionMeter/Emotion_Meter.deepar" },
+  {
+    name: "Elephant Trunk",
+    path: "/filters/ElephantTrunk/Elephant_Trunk.deepar",
+  },
+  {
+    name: "Devil Neon Horns",
+    path: "/filters/DevilNeonHorns/Neon_Devil_Horns.deepar",
+  },
+  {
+    name: "Burning Effect",
+    path: "/filters/BurningEffect/burning_effect.deepar",
+  },
+];
+
 const Home = () => {
   const licenseKey = import.meta.env.VITE_DEEPAR_LICENSE_KEY;
   const [isRecording, setIsRecording] = useState(false);
@@ -11,6 +61,8 @@ const Home = () => {
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [permissionChecked, setPermissionChecked] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [currentFilter, setCurrentFilter] = useState<string>("");
+  const [filterError, setFilterError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for camera permissions first before doing anything
@@ -102,11 +154,10 @@ const Home = () => {
       setIsInitializing(true);
       console.log("Initializing DeepAR...");
 
-      // Initialize DeepAR with the canvas element
+      // Initialize DeepAR with the canvas element (no initial effect)
       deepARRef.current = await deepar.initialize({
         licenseKey: licenseKey,
         canvas: canvasRef.current,
-        effect: "https://cdn.jsdelivr.net/npm/deepar/effects/aviators",
         additionalOptions: {
           cameraConfig: {
             // Ensure we're using the front camera
@@ -135,6 +186,28 @@ const Home = () => {
       setPermissionError("Failed to initialize AR features. Please try again.");
     } finally {
       setIsInitializing(false);
+    }
+  };
+
+  const switchFilter = async (filterPath: string) => {
+    if (!deepARRef.current) return;
+
+    try {
+      setFilterError(null);
+
+      if (!filterPath) {
+        // If empty path, remove filter
+        await deepARRef.current.clearEffect();
+        setCurrentFilter("");
+        return;
+      }
+
+      console.log(`Switching to filter: ${filterPath}`);
+      await deepARRef.current.switchEffect(filterPath);
+      setCurrentFilter(filterPath);
+    } catch (error) {
+      console.error("Failed to switch filter:", error);
+      setFilterError(`Failed to load filter: ${filterPath}`);
     }
   };
 
@@ -188,6 +261,18 @@ const Home = () => {
         </div>
       )}
 
+      {filterError && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          <p>{filterError}</p>
+          <button
+            onClick={() => setFilterError(null)}
+            className="mt-2 bg-yellow-500 text-white px-4 py-2 rounded"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {isInitializing && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
           <div className="bg-white p-4 rounded-lg">
@@ -202,6 +287,31 @@ const Home = () => {
         width={1280}
         height={720}
       />
+
+      {/* Filter Selection */}
+      <div className="mt-4 mb-4">
+        <h3 className="text-lg font-semibold mb-2">Choose a Filter</h3>
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((filter, index) => (
+            <button
+              key={index}
+              onClick={() => switchFilter(filter.path)}
+              disabled={!deepARRef.current || isInitializing}
+              className={`px-3 py-2 rounded-lg text-sm ${
+                currentFilter === filter.path
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              } ${
+                !deepARRef.current || isInitializing
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+            >
+              {filter.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {videoUrl && (
         <div className="mt-4">
