@@ -139,7 +139,7 @@ export const uploadAndSaveMedia = async (
     const filePath = `${userEmail}/${fileName}`;
 
     // Upload file to Supabase Storage
-    const {  error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("media")
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -201,5 +201,91 @@ export const getUserMedia = async () => {
   } catch (error) {
     console.error("Error getting user media:", error);
     return { data: null, error: { message: "An unexpected error occurred" } };
+  }
+};
+
+/**
+ * Uploads a video to the reels bucket and saves its URL to the reels table
+ * @param videoBlob The video blob to upload
+ * @returns Object containing data or error
+ */
+export const uploadReel = async (videoBlob: Blob) => {
+  try {
+    const userEmail = localStorage.getItem("userEmail");
+
+    if (!userEmail) {
+      return { error: { message: "User not authenticated" } };
+    }
+
+    // Create a unique file name using timestamp and random string
+    const fileName = `${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 15)}.mp4`;
+
+    // Upload file to Supabase Storage
+    const { data: fileData, error: uploadError } = await supabase.storage
+      .from("reels")
+      .upload(fileName, videoBlob, {
+        contentType: "video/mp4",
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      return { error: uploadError };
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("reels")
+      .getPublicUrl(fileData.path);
+
+    const fileUrl = publicUrlData.publicUrl;
+
+    // Save to reels table
+    const { data, error: dbError } = await supabase
+      .from("reels")
+      .insert({
+        user_email: userEmail,
+        video_url: fileUrl,
+      })
+      .select();
+
+    if (dbError) {
+      return { error: dbError };
+    }
+
+    return { data: data[0] };
+  } catch (error) {
+    console.error("Error in uploadReel:", error);
+    return { error: { message: "Failed to upload reel" } };
+  }
+};
+
+/**
+ * Gets all reels for the current user
+ * @returns Object containing data or error
+ */
+export const getUserReels = async () => {
+  try {
+    const userEmail = localStorage.getItem("userEmail");
+
+    if (!userEmail) {
+      return { error: { message: "User not authenticated" } };
+    }
+
+    const { data, error } = await supabase
+      .from("reels")
+      .select("*")
+      .eq("user_email", userEmail)
+      .order("uploaded_at", { ascending: false });
+
+    if (error) {
+      return { error };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Error in getUserReels:", error);
+    return { error: { message: "Failed to fetch reels" } };
   }
 };
