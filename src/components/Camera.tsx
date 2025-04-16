@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import * as deepar from "deepar";
 import { Button } from "./ui/button";
+
+
+
 
 interface CameraProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -12,6 +15,29 @@ interface CameraProps {
   deepARRef: React.RefObject<deepar.DeepAR | null>;
 }
 
+
+function useWindowSize() {
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return windowSize;
+}
+
+
 const Camera = ({
   canvasRef,
   isRecording,
@@ -21,15 +47,15 @@ const Camera = ({
   isInitializing,
   deepARRef,
 }: CameraProps) => {
+  const { width, height } = useWindowSize();
   return (
-    <div className="flex flex-col items-center">
-      {/* Camera Preview */}
-      <div className="relative mb-6 w-full">
+    <div className="">
+      <div className="relative w-full">
         <canvas
           ref={canvasRef}
-          className="w-full aspect-video rounded-2xl shadow-medium border border-border"
-          width={1280}
-          height={720}
+          className="w-full !min-h-full rounded-2xl shadow-medium border border-border"
+          width={width }
+          height={height - 72}
         />
 
         {/* Recording Indicator */}
@@ -42,7 +68,7 @@ const Camera = ({
       </div>
 
       {/* Record Button */}
-      <div className="flex justify-center items-center mt-4 mb-8">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex justify-center items-center ">
         <Button
           onPointerDown={startRecording}
           onPointerUp={stopRecording}
@@ -62,9 +88,6 @@ const Camera = ({
             } rounded-sm bg-white transition-all duration-300`}
           />
         </Button>
-        <p className="absolute mt-28 text-sm text-muted-foreground">
-          Press and hold to record
-        </p>
       </div>
     </div>
   );

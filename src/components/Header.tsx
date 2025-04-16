@@ -10,14 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { useAuth } from "../context/AuthContext";
 
-interface HeaderProps {
-  user: { email: string } | null;
-  onLogout: () => Promise<void>;
-}
-
-const Header = ({ user, onLogout }: HeaderProps) => {
+const Header = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const goToProfile = () => {
     navigate("/profile");
@@ -64,7 +61,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={onLogout}
+                  onClick={() => logout()}
                   className="text-destructive focus:text-destructive cursor-pointer"
                 >
                   <svg

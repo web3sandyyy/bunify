@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import * as deepar from "deepar";
-import filters from "../constants/filters";
-import { useAuth } from "../context/AuthContext";
 import { uploadAndSaveMedia } from "../lib/supabase";
 import { Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -31,8 +29,6 @@ const Home = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
-
-  const { user, logout } = useAuth();
 
   // Handle splash screen
   const handleSplashComplete = () => {
@@ -261,21 +257,15 @@ const Home = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    // Redirect will happen automatically via ProtectedRoute
-  };
-
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header user={user} onLogout={handleLogout} />
+    <div className="h-[100dvh] bg-background">
+      <Header />
 
-      <main className="flex-1 container mx-auto p-4">
-        {/* Permission Error Banner */}
+      <main className="mx-auto p-4 ">
         {permissionChecked && !permissionGranted && permissionError && (
           <ErrorBanner
             error={permissionError}
@@ -322,7 +312,6 @@ const Home = () => {
         />
 
         <Filters
-          filters={filters}
           currentFilter={currentFilter}
           switchFilter={switchFilter}
           deepARRef={deepARRef}

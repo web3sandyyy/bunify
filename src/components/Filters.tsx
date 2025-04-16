@@ -1,13 +1,8 @@
 import { Button } from "./ui/button";
 import * as deepar from "deepar";
-
-interface Filter {
-  name: string;
-  path: string;
-}
+import filters from "../constants/filters";
 
 interface FiltersProps {
-  filters: Filter[];
   currentFilter: string;
   switchFilter: (path: string) => Promise<void>;
   deepARRef: React.RefObject<deepar.DeepAR | null>;
@@ -15,7 +10,6 @@ interface FiltersProps {
 }
 
 const Filters = ({
-  filters,
   currentFilter,
   switchFilter,
   deepARRef,
