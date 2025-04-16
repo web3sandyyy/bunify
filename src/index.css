@@ -1,0 +1,97 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Lexend:wght@300;400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: oklch(0.88 0.07 0); /* #FFC6D3 - Soft Peach Pink */
+  --color-accent: oklch(0.76 0.12 0); /* #FF8FAB - Bubblegum Pink */
+  --color-secondary: oklch(1 0 0); /* #FFFFFF - Pure White */
+  --color-contrast: oklch(0.27 0 0); /* #3A3A3A - Charcoal Gray */
+  --color-cute-detail: oklch(0.96 0.02 0); /* #FFF4F6 - Subtle background */
+
+  /* Theme Colors */
+  --background: var(--color-cute-detail);
+  --foreground: var(--color-contrast);
+  --card: var(--color-secondary);
+  --card-foreground: var(--color-contrast);
+  --popover: var(--color-secondary);
+  --popover-foreground: var(--color-contrast);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-contrast);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-contrast);
+  --muted: var(--color-cute-detail);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: var(--color-accent);
+  --accent-foreground: var(--color-secondary);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--color-primary);
+  --input: var(--color-primary);
+  --ring: var(--color-accent);
+
+  /* Typography */
+  --font-poppins: "Poppins", sans-serif;
+  --font-lexend: "Lexend", sans-serif;
+
+  /* Border Radius */
+  --radius: var(--radius-lg);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-soft: 0px 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0px 8px 16px rgba(0, 0, 0, 0.08);
+  --shadow-large: 0px 12px 24px rgba(0, 0, 0, 0.12);
+
+  /* Animation */
+  --bounce-transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --smooth-transition: all 0.2s ease-in-out;
+}
+
+@layer base {
+  * {
+    @apply border border-primary/20 outline-accent/50;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-lexend);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-poppins);
+    @apply font-semibold;
+  }
+}
+
+/* Utility classes for animations */
+@layer utilities {
+  .animate-bounce-subtle {
+    transition: var(--bounce-transition);
+  }
+
+  .animate-smooth {
+    transition: var(--smooth-transition);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-large {
+    box-shadow: var(--shadow-large);
+  }
+}
