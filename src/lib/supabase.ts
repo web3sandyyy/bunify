@@ -32,7 +32,7 @@ export const signUp = async (email: string, password: string) => {
     }
 
     // Insert new user
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("users")
       .insert([{ email, password }])
       .select()
@@ -139,7 +139,7 @@ export const uploadAndSaveMedia = async (
     const filePath = `${userEmail}/${fileName}`;
 
     // Upload file to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const {  error: uploadError } = await supabase.storage
       .from("media")
       .upload(filePath, file, {
         cacheControl: "3600",
