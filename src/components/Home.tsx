@@ -1,55 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as deepar from "deepar";
-
-// Define available filters
-const FILTERS = [
-  { name: "None", path: "" },
-  {
-    name: "Viking Helmet",
-    path: "/filters/VikingHelmetPBR/viking_helmet.deepar",
-  },
-  { name: "Vendetta Mask", path: "/filters/VendettaMask/Vendetta_Mask.deepar" },
-  { name: "Stallone", path: "/filters/Stallone/Stallone.deepar" },
-  { name: "Snail", path: "/filters/Snail/Snail.deepar" },
-  {
-    name: "Pixel Heart",
-    path: "/filters/PixelHeartParticles/8bitHearts.deepar",
-  },
-  { name: "Ping Pong", path: "/filters/PingPongMinigame/Ping_Pong.deepar" },
-  {
-    name: "Makeup Split",
-    path: "/filters/MakeupLookw:SliptScreenEffect/Split_View_Look.deepar",
-  },
-  {
-    name: "Makeup Simple",
-    path: "/filters/MakeupLookSimple/MakeupLook.deepar",
-  },
-  { name: "Humanoid", path: "/filters/Humanoid/Humanoid.deepar" },
-  { name: "Hope", path: "/filters/Hope/Hope.deepar" },
-  {
-    name: "Galaxy",
-    path: "/filters/GalaxyBackground/galaxy_background.deepar",
-  },
-  { name: "Flower Face", path: "/filters/FlowerFace/flower_face.deepar" },
-  { name: "Fire Effect", path: "/filters/FireEffect/Fire_Effect.deepar" },
-  {
-    name: "Emotions Exaggerator",
-    path: "/filters/EmotionsExaggerator/Emotions_Exaggerator.deepar",
-  },
-  { name: "Emotion Meter", path: "/filters/EmotionMeter/Emotion_Meter.deepar" },
-  {
-    name: "Elephant Trunk",
-    path: "/filters/ElephantTrunk/Elephant_Trunk.deepar",
-  },
-  {
-    name: "Devil Neon Horns",
-    path: "/filters/DevilNeonHorns/Neon_Devil_Horns.deepar",
-  },
-  {
-    name: "Burning Effect",
-    path: "/filters/BurningEffect/burning_effect.deepar",
-  },
-];
+import filters from "../constants/filters";
+import { useAuth } from "../context/AuthContext";
+import { saveMedia } from "../lib/supabase";
 
 const Home = () => {
   const licenseKey = import.meta.env.VITE_DEEPAR_LICENSE_KEY;
@@ -63,6 +16,11 @@ const Home = () => {
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<string>("");
   const [filterError, setFilterError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     // Check for camera permissions first before doing anything
@@ -217,6 +175,7 @@ const Home = () => {
     try {
       setIsRecording(true);
       setVideoUrl(null);
+      setSaveSuccess(false);
       await deepARRef.current.startVideoRecording();
       console.log("Recording started");
     } catch (error) {
@@ -247,8 +206,50 @@ const Home = () => {
     }
   };
 
+  const handleSaveVideo = async () => {
+    if (!videoUrl) return;
+
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+
+      // In a real app, you would upload this to storage
+      // For now, we'll just save the local URL
+      const { error } = await saveMedia(videoUrl, "video");
+
+      if (error) {
+        setSaveError(error.message);
+      } else {
+        setSaveSuccess(true);
+      }
+    } catch (error) {
+      console.error("Error saving video:", error);
+      setSaveError("Failed to save video");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    // Redirect will happen automatically via ProtectedRoute
+  };
+
   return (
     <div className="min-h-full w-full p-2">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Filterly</h1>
+        <div className="flex items-center gap-2">
+          {user && <span className="text-sm">{user.email}</span>}
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
       {permissionChecked && !permissionGranted && permissionError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <p>{permissionError}</p>
@@ -292,7 +293,7 @@ const Home = () => {
       <div className="mt-4 mb-4">
         <h3 className="text-lg font-semibold mb-2">Choose a Filter</h3>
         <div className="flex flex-wrap gap-2">
-          {FILTERS.map((filter, index) => (
+          {filters.map((filter, index) => (
             <button
               key={index}
               onClick={() => switchFilter(filter.path)}
@@ -315,7 +316,27 @@ const Home = () => {
 
       {videoUrl && (
         <div className="mt-4">
-          <h3 className="text-lg font-semibold mb-2">Recorded Video</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold">Recorded Video</h3>
+            <button
+              onClick={handleSaveVideo}
+              disabled={isSaving || saveSuccess}
+              className={`px-4 py-2 rounded ${
+                saveSuccess
+                  ? "bg-green-500 text-white"
+                  : "bg-blue-500 text-white hover:bg-blue-600"
+              } ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Video"}
+            </button>
+          </div>
+
+          {saveError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <p>{saveError}</p>
+            </div>
+          )}
+
           <video src={videoUrl} controls className="w-full border rounded-lg" />
         </div>
       )}
