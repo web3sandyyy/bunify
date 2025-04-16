@@ -3,145 +3,14 @@ import * as deepar from "deepar";
 import filters from "../constants/filters";
 import { useAuth } from "../context/AuthContext";
 import { uploadAndSaveMedia } from "../lib/supabase";
-import {
-  Upload,
-  Video,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { SplashScreen } from "./SplashScreen";
-import Gallery from "./Gallery";
 import ErrorBanner from "./ErrorBanner";
 import Header from "./Header";
 import Camera from "./Camera";
-
-interface Filter {
-  name: string;
-  path: string;
-}
-
-interface FiltersProps {
-  filters: Filter[];
-  currentFilter: string;
-  switchFilter: (path: string) => Promise<void>;
-  deepARRef: React.RefObject<deepar.DeepAR | null>;
-  isInitializing: boolean;
-}
-
-// Filters Component
-const Filters = ({
-  filters,
-  currentFilter,
-  switchFilter,
-  deepARRef,
-  isInitializing,
-}: FiltersProps) => {
-  return (
-    <div className="mb-6">
-      <h3 className="text-lg font-semibold mb-3 text-foreground">Filters</h3>
-      <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 bg-muted/30 rounded-xl">
-        {filters.map((filter, index) => (
-          <Button
-            key={index}
-            onClick={() => switchFilter(filter.path)}
-            disabled={!deepARRef.current || isInitializing}
-            variant={currentFilter === filter.path ? "accent" : "outline"}
-            size="sm"
-            className="font-medium"
-          >
-            {filter.name}
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-interface VideoPreviewProps {
-  videoUrl: string | null;
-  videoBlob: Blob | null;
-  isSaving: boolean;
-  saveSuccess: boolean;
-  saveError: string | null;
-  uploadedUrl: string | null;
-  handleSaveVideo: () => Promise<void>;
-}
-
-// Video Preview Component
-const VideoPreview = ({
-  videoUrl,
-  videoBlob,
-  isSaving,
-  saveSuccess,
-  saveError,
-  uploadedUrl,
-  handleSaveVideo,
-}: VideoPreviewProps) => {
-  if (!videoUrl) return null;
-
-  return (
-    <div className="mb-6 bg-card rounded-xl shadow-medium overflow-hidden">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-foreground flex items-center">
-          <Video className="mr-2 h-5 w-5 text-accent" />
-          Recorded Video
-        </h3>
-        <Button
-          onClick={handleSaveVideo}
-          disabled={isSaving || saveSuccess || !videoBlob}
-          variant={saveSuccess ? "secondary" : "accent"}
-          size="sm"
-          className="shadow-sm"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : saveSuccess ? (
-            "Saved!"
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload
-            </>
-          )}
-        </Button>
-      </div>
-
-      {saveError && (
-        <div className="bg-destructive/10 border-x border-b border-destructive text-destructive p-3">
-          <p className="text-sm">{saveError}</p>
-        </div>
-      )}
-
-      {uploadedUrl && (
-        <div className="bg-green-50 border-x border-b border-green-200 p-3">
-          <p className="text-sm text-green-800">Video uploaded successfully!</p>
-          <p className="text-xs text-green-700 truncate mt-1 overflow-hidden">
-            Saved at:{" "}
-            <a
-              href={uploadedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              {uploadedUrl}
-            </a>
-          </p>
-        </div>
-      )}
-
-      <div className="p-4">
-        <video
-          src={videoUrl}
-          controls
-          className="w-full rounded-lg border border-muted"
-        />
-      </div>
-    </div>
-  );
-};
+import Filters from "./Filters";
+import VideoPreview from "./VideoPreview";
 
 // Main Home Component
 const Home = () => {
@@ -162,7 +31,6 @@ const Home = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
-  const [showGallery, setShowGallery] = useState(false);
 
   const { user, logout } = useAuth();
 
@@ -404,11 +272,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header
-        user={user}
-        onLogout={handleLogout}
-        onOpenGallery={() => setShowGallery(true)}
-      />
+      <Header user={user} onLogout={handleLogout} />
 
       <main className="flex-1 container mx-auto p-4">
         {/* Permission Error Banner */}
@@ -475,9 +339,6 @@ const Home = () => {
           handleSaveVideo={handleSaveVideo}
         />
       </main>
-
-      {/* Gallery Modal */}
-      {showGallery && <Gallery onClose={() => setShowGallery(false)} />}
     </div>
   );
 };

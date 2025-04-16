@@ -1,47 +1,91 @@
 import { User } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo/logo1.png";
 import { Button } from "./ui/button";
-import { ImageIcon, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 interface HeaderProps {
   user: { email: string } | null;
   onLogout: () => Promise<void>;
-  onOpenGallery: () => void;
 }
 
-const Header = ({ user, onLogout, onOpenGallery }: HeaderProps) => {
+const Header = ({ user, onLogout }: HeaderProps) => {
+  const navigate = useNavigate();
+
+  const goToProfile = () => {
+    navigate("/profile");
+  };
+
   return (
-    <header className="bg-card shadow-medium p-4">
+    <header className="bg-card shadow-medium p-4 sticky top-0 z-10">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-foreground flex items-center">
-          <img src={logo} alt="Bunify" className="mr-2 h-10 w-10" />
-          Bunify
-        </h1>
+        {/* Logo and Title - Responsive */}
+        <Link to="/" className="flex items-center">
+          <img
+            src={logo}
+            alt="Bunify"
+            className="mr-2 h-8 w-8 sm:h-10 sm:w-10"
+          />
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground hidden sm:block">
+            Bunify
+          </h1>
+        </Link>
+
+        {/* Actions */}
         <div className="flex items-center gap-2">
           {user && (
-            <div className="flex items-center bg-muted rounded-full px-3 py-1 text-sm">
-              <User className="h-4 w-4 mr-2 text-accent" />
-              <span className="text-foreground">{user.email}</span>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full bg-muted hover:bg-muted/80"
+                  aria-label="User menu"
+                >
+                  <User className="h-5 w-5 text-accent" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={goToProfile}
+                  className="cursor-pointer"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onLogout}
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-2 h-4 w-4"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenGallery}
-            className="rounded-full"
-            title="Gallery"
-          >
-            <ImageIcon className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onLogout}
-            className="rounded-full"
-            title="Logout"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
         </div>
       </div>
     </header>
