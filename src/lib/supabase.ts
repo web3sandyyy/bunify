@@ -9,11 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-interface User {
-  email: string;
-  password: string;
-}
-
 // Register a new user
 export const signUp = async (email: string, password: string) => {
   try {
@@ -124,9 +119,9 @@ export const getCurrentUser = async () => {
   }
 };
 
-// Save media file
-export const saveMedia = async (
-  fileUrl: string,
+// Upload media to storage and save reference in database
+export const uploadAndSaveMedia = async (
+  file: Blob | File,
   fileType: "image" | "video"
 ) => {
   try {
@@ -136,6 +131,34 @@ export const saveMedia = async (
       return { data: null, error: { message: "User not authenticated" } };
     }
 
+    // Generate a unique filename
+    const fileExtension = fileType === "video" ? "mp4" : "jpg";
+    const fileName = `${
+      userEmail.split("@")[0]
+    }_${Date.now()}.${fileExtension}`;
+    const filePath = `${userEmail}/${fileName}`;
+
+    // Upload file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: fileType === "video" ? "video/mp4" : "image/jpeg",
+      });
+
+    if (uploadError) {
+      return { data: null, error: uploadError };
+    }
+
+    // Get the public URL for the uploaded file
+    const { data: publicUrlData } = supabase.storage
+      .from("media")
+      .getPublicUrl(filePath);
+
+    const fileUrl = publicUrlData.publicUrl;
+
+    // Save reference to file in the media table
     const { data, error } = await supabase
       .from("media")
       .insert([
@@ -148,9 +171,13 @@ export const saveMedia = async (
       .select()
       .single();
 
-    return { data, error };
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   } catch (error) {
-    console.error("Error saving media:", error);
+    console.error("Error uploading and saving media:", error);
     return { data: null, error: { message: "An unexpected error occurred" } };
   }
 };

@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import * as deepar from "deepar";
 import filters from "../constants/filters";
 import { useAuth } from "../context/AuthContext";
-import { saveMedia } from "../lib/supabase";
+import { uploadAndSaveMedia } from "../lib/supabase";
 
 const Home = () => {
   const licenseKey = import.meta.env.VITE_DEEPAR_LICENSE_KEY;
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const deepARRef = useRef<deepar.DeepAR | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
@@ -19,6 +20,7 @@ const Home = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
   const { user, logout } = useAuth();
 
@@ -175,6 +177,8 @@ const Home = () => {
     try {
       setIsRecording(true);
       setVideoUrl(null);
+      setVideoBlob(null);
+      setUploadedUrl(null);
       setSaveSuccess(false);
       await deepARRef.current.startVideoRecording();
       console.log("Recording started");
@@ -188,14 +192,23 @@ const Home = () => {
     if (!deepARRef.current || !isRecording) return;
 
     try {
-      const videoDataUrl = await deepARRef.current.finishVideoRecording();
+      const videoData = await deepARRef.current.finishVideoRecording();
 
       // Handle the blob data and create a URL from it
-      if (videoDataUrl instanceof Blob) {
-        const url = URL.createObjectURL(videoDataUrl);
+      if (videoData instanceof Blob) {
+        const url = URL.createObjectURL(videoData);
         setVideoUrl(url);
-      } else if (typeof videoDataUrl === "string") {
-        setVideoUrl(videoDataUrl);
+        setVideoBlob(videoData);
+      } else if (typeof videoData === "string") {
+        setVideoUrl(videoData);
+        // Try to fetch the data URL and convert to blob
+        try {
+          const response = await fetch(videoData);
+          const blob = await response.blob();
+          setVideoBlob(blob);
+        } catch (error) {
+          console.error("Failed to convert data URL to blob:", error);
+        }
       }
 
       setIsRecording(false);
@@ -207,20 +220,23 @@ const Home = () => {
   };
 
   const handleSaveVideo = async () => {
-    if (!videoUrl) return;
+    if (!videoBlob) {
+      setSaveError("No video to save");
+      return;
+    }
 
     try {
       setIsSaving(true);
       setSaveError(null);
 
-      // In a real app, you would upload this to storage
-      // For now, we'll just save the local URL
-      const { error } = await saveMedia(videoUrl, "video");
+      // Upload video blob to Supabase storage and save reference in DB
+      const { data, error } = await uploadAndSaveMedia(videoBlob, "video");
 
       if (error) {
         setSaveError(error.message);
-      } else {
+      } else if (data) {
         setSaveSuccess(true);
+        setUploadedUrl(data.file_url);
       }
     } catch (error) {
       console.error("Error saving video:", error);
@@ -292,7 +308,7 @@ const Home = () => {
       {/* Filter Selection */}
       <div className="mt-4 mb-4">
         <h3 className="text-lg font-semibold mb-2">Choose a Filter</h3>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2">
           {filters.map((filter, index) => (
             <button
               key={index}
@@ -320,20 +336,43 @@ const Home = () => {
             <h3 className="text-lg font-semibold">Recorded Video</h3>
             <button
               onClick={handleSaveVideo}
-              disabled={isSaving || saveSuccess}
+              disabled={isSaving || saveSuccess || !videoBlob}
               className={`px-4 py-2 rounded ${
                 saveSuccess
                   ? "bg-green-500 text-white"
                   : "bg-blue-500 text-white hover:bg-blue-600"
-              } ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${
+                isSaving || !videoBlob ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
-              {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Video"}
+              {isSaving
+                ? "Uploading..."
+                : saveSuccess
+                ? "Saved!"
+                : "Upload to Media"}
             </button>
           </div>
 
           {saveError && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               <p>{saveError}</p>
+            </div>
+          )}
+
+          {uploadedUrl && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+              <p>Video uploaded successfully!</p>
+              <p className="text-xs truncate mt-1">
+                Saved at:{" "}
+                <a
+                  href={uploadedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  {uploadedUrl}
+                </a>
+              </p>
             </div>
           )}
 
