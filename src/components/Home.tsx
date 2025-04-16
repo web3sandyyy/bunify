@@ -3,6 +3,19 @@ import * as deepar from "deepar";
 import filters from "../constants/filters";
 import { useAuth } from "../context/AuthContext";
 import { uploadAndSaveMedia } from "../lib/supabase";
+import {
+  Camera,
+  Upload,
+  LogOut,
+  Image as ImageIcon,
+  Video,
+  User,
+  X,
+  Loader2,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { SplashScreen } from "./SplashScreen";
+import Gallery from "./Gallery";
 
 const Home = () => {
   const licenseKey = import.meta.env.VITE_DEEPAR_LICENSE_KEY;
@@ -21,13 +34,20 @@ const Home = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showGallery, setShowGallery] = useState(false);
 
   const { user, logout } = useAuth();
 
-  useEffect(() => {
-    // Check for camera permissions first before doing anything
+  // Handle splash screen
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    // We wait for splash to complete before initializing camera
     checkCameraPermission();
+  };
 
+  useEffect(() => {
+    // The splash screen will trigger camera permission check when it completes
     return () => {
       // Cleanup DeepAR when component unmounts
       if (deepARRef.current) {
@@ -251,153 +271,225 @@ const Home = () => {
     // Redirect will happen automatically via ProtectedRoute
   };
 
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
   return (
-    <div className="min-h-full w-full p-2">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Filterly</h1>
-        <div className="flex items-center gap-2">
-          {user && <span className="text-sm">{user.email}</span>}
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {permissionChecked && !permissionGranted && permissionError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <p>{permissionError}</p>
-          <button
-            onClick={requestCameraPermission}
-            className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
-          >
-            Request Camera Permission
-          </button>
-        </div>
-      )}
-
-      {filterError && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-          <p>{filterError}</p>
-          <button
-            onClick={() => setFilterError(null)}
-            className="mt-2 bg-yellow-500 text-white px-4 py-2 rounded"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {isInitializing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <div className="bg-white p-4 rounded-lg">
-            <p className="text-lg">Initializing camera...</p>
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Top Navigation Bar */}
+      <header className="bg-card shadow-medium p-4">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-foreground flex items-center">
+            <Camera className="mr-2 h-6 w-6 text-accent" />
+            Bunify
+          </h1>
+          <div className="flex items-center gap-2">
+            {user && (
+              <div className="flex items-center bg-muted rounded-full px-3 py-1 text-sm">
+                <User className="h-4 w-4 mr-2 text-accent" />
+                <span className="text-foreground">{user.email}</span>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowGallery(true)}
+              className="rounded-full"
+              title="Gallery"
+            >
+              <ImageIcon className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="rounded-full"
+              title="Logout"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
-      )}
+      </header>
 
-      <canvas
-        ref={canvasRef}
-        className="w-full min-h-[60vh] border-2 border-black rounded-lg object-cover"
-        width={1280}
-        height={720}
-      />
-
-      {/* Filter Selection */}
-      <div className="mt-4 mb-4">
-        <h3 className="text-lg font-semibold mb-2">Choose a Filter</h3>
-        <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2">
-          {filters.map((filter, index) => (
-            <button
-              key={index}
-              onClick={() => switchFilter(filter.path)}
-              disabled={!deepARRef.current || isInitializing}
-              className={`px-3 py-2 rounded-lg text-sm ${
-                currentFilter === filter.path
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              } ${
-                !deepARRef.current || isInitializing
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
-              }`}
+      <main className="flex-1 container mx-auto p-4">
+        {/* Permission Error Banner */}
+        {permissionChecked && !permissionGranted && permissionError && (
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4">
+            <p className="mb-2">{permissionError}</p>
+            <Button
+              onClick={requestCameraPermission}
+              variant="secondary"
+              size="sm"
             >
-              {filter.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {videoUrl && (
-        <div className="mt-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold">Recorded Video</h3>
-            <button
-              onClick={handleSaveVideo}
-              disabled={isSaving || saveSuccess || !videoBlob}
-              className={`px-4 py-2 rounded ${
-                saveSuccess
-                  ? "bg-green-500 text-white"
-                  : "bg-blue-500 text-white hover:bg-blue-600"
-              } ${
-                isSaving || !videoBlob ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              {isSaving
-                ? "Uploading..."
-                : saveSuccess
-                ? "Saved!"
-                : "Upload to Media"}
-            </button>
+              Request Camera Permission
+            </Button>
           </div>
+        )}
 
-          {saveError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              <p>{saveError}</p>
-            </div>
-          )}
+        {/* Filter Error Banner */}
+        {filterError && (
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4 flex justify-between items-center">
+            <p>{filterError}</p>
+            <Button
+              onClick={() => setFilterError(null)}
+              variant="ghost"
+              size="sm"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
-          {uploadedUrl && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              <p>Video uploaded successfully!</p>
-              <p className="text-xs truncate mt-1">
-                Saved at:{" "}
-                <a
-                  href={uploadedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  {uploadedUrl}
-                </a>
+        {/* Loading Overlay */}
+        {isInitializing && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="bg-card p-6 rounded-xl shadow-medium flex flex-col items-center">
+              <Loader2 className="h-8 w-8 text-accent animate-spin mb-2" />
+              <p className="text-foreground font-medium">
+                Initializing camera...
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Camera Preview */}
+        <div className="relative mb-6">
+          <canvas
+            ref={canvasRef}
+            className="w-full aspect-video rounded-2xl shadow-medium border border-border"
+            width={1280}
+            height={720}
+          />
+
+          {/* Recording Indicator */}
+          {isRecording && (
+            <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full flex items-center shadow-medium">
+              <div className="w-3 h-3 rounded-full bg-white mr-2 animate-pulse" />
+              Recording...
+            </div>
           )}
-
-          <video src={videoUrl} controls className="w-full border rounded-lg" />
         </div>
-      )}
 
-      <div className="flex justify-center items-center w-full mt-4">
-        <button
-          onPointerDown={startRecording}
-          onPointerUp={stopRecording}
-          disabled={!permissionGranted || isInitializing || !deepARRef.current}
-          className={`${
-            isRecording ? "bg-red-500" : "bg-blue-500"
-          } p-6 rounded-full transition-all duration-100 flex items-center justify-center ${
-            !permissionGranted || isInitializing || !deepARRef.current
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          <span className="text-white font-bold">
-            {isRecording ? "Recording..." : "Hold to Record"}
-          </span>
-        </button>
-      </div>
+        {/* Filter Selection */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3 text-foreground">
+            Filters
+          </h3>
+          <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 bg-muted/30 rounded-xl">
+            {filters.map((filter, index) => (
+              <Button
+                key={index}
+                onClick={() => switchFilter(filter.path)}
+                disabled={!deepARRef.current || isInitializing}
+                variant={currentFilter === filter.path ? "accent" : "outline"}
+                size="sm"
+                className="font-medium"
+              >
+                {filter.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recorded Video Preview */}
+        {videoUrl && (
+          <div className="mb-6 bg-card rounded-xl shadow-medium overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-foreground flex items-center">
+                <Video className="mr-2 h-5 w-5 text-accent" />
+                Recorded Video
+              </h3>
+              <Button
+                onClick={handleSaveVideo}
+                disabled={isSaving || saveSuccess || !videoBlob}
+                variant={saveSuccess ? "secondary" : "accent"}
+                size="sm"
+                className="shadow-sm"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : saveSuccess ? (
+                  "Saved!"
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {saveError && (
+              <div className="bg-destructive/10 border-x border-b border-destructive text-destructive p-3">
+                <p className="text-sm">{saveError}</p>
+              </div>
+            )}
+
+            {uploadedUrl && (
+              <div className="bg-green-50 border-x border-b border-green-200 p-3">
+                <p className="text-sm text-green-800">
+                  Video uploaded successfully!
+                </p>
+                <p className="text-xs text-green-700 truncate mt-1 overflow-hidden">
+                  Saved at:{" "}
+                  <a
+                    href={uploadedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {uploadedUrl}
+                  </a>
+                </p>
+              </div>
+            )}
+
+            <div className="p-4">
+              <video
+                src={videoUrl}
+                controls
+                className="w-full rounded-lg border border-muted"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Record Button */}
+        <div className="flex justify-center items-center mt-4 mb-8">
+          <Button
+            onPointerDown={startRecording}
+            onPointerUp={stopRecording}
+            disabled={
+              !permissionGranted || isInitializing || !deepARRef.current
+            }
+            variant="accent"
+            size="lg"
+            className={`${
+              isRecording ? "bg-red-500 hover:bg-red-600" : ""
+            } h-16 w-16 rounded-full transition-all duration-300 shadow-large`}
+          >
+            <span className="sr-only">
+              {isRecording ? "Stop Recording" : "Start Recording"}
+            </span>
+            <div
+              className={`${
+                isRecording ? "h-6 w-6" : "h-5 w-5"
+              } rounded-sm bg-white transition-all duration-300`}
+            />
+          </Button>
+          <p className="absolute mt-28 text-sm text-muted-foreground">
+            Press and hold to record
+          </p>
+        </div>
+      </main>
+
+      {/* Gallery Modal */}
+      {showGallery && <Gallery onClose={() => setShowGallery(false)} />}
     </div>
   );
 };
