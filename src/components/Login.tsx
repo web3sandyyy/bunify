@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -11,12 +11,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the location the user was trying to access before being redirected to login
+  const from = location.state?.from?.pathname || "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
-    if (localStorage.getItem("userEmail")) {
-      navigate("/");
+    const success = await login(email, password);
+
+    if (success && localStorage.getItem("userEmail")) {
+      // Navigate to the page they were trying to access, or home if none specified
+      navigate(from, { replace: true });
     }
   };
 

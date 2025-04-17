@@ -19,6 +19,7 @@ const Reels = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
+  const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
 
   // Refs for the container and videos
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,6 +27,7 @@ const Reels = () => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const scrollingRef = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const tooltipTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch reels on initial load
   useEffect(() => {
@@ -46,33 +48,43 @@ const Reels = () => {
       (entries) => {
         if (scrollingRef.current) return;
 
-        // Find the most visible entry
-        const visibleEntry = entries.find(
-          (entry) => entry.isIntersecting && entry.intersectionRatio > 0.7
-        );
+        entries.forEach((entry) => {
+          const reelId = entry.target.getAttribute("data-reel-id");
+          if (!reelId) return;
 
-        if (visibleEntry) {
-          const reelId = visibleEntry.target.getAttribute("data-reel-id");
-          if (reelId && reelId !== id) {
-            // Update URL without triggering a scroll (to avoid loops)
-            navigate(`/reel/${reelId}`, { replace: true });
+          const reelIndex = reels.findIndex(
+            (reel) => reel.id.toString() === reelId
+          );
+          if (reelIndex === -1 || !videoRefs.current[reelIndex]) return;
 
-            // Play the visible video and pause others
-            videoRefs.current.forEach((video, index) => {
-              if (video) {
-                if (index.toString() === reelId) {
-                  video
-                    .play()
-                    .catch((e) => console.error("Could not play video:", e));
-                } else {
-                  video.pause();
-                }
-              }
+          const video = videoRefs.current[reelIndex];
+
+          if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
+            // If this is the most visible video, play it and update URL
+            if (reelId !== id) {
+              navigate(`/reel/${reelId}`, { replace: true });
+            }
+
+            // Unmute and play the video
+            video.muted = false;
+            video.play().catch((e) => {
+              console.error("Could not play video:", e);
+              // Fallback to muted autoplay which has better browser support
+              video.muted = true;
+              video
+                .play()
+                .catch((err) =>
+                  console.error("Could not play muted video:", err)
+                );
             });
+          } else {
+            // Pause videos that are not in view
+            video.pause();
+            video.muted = true;
           }
-        }
+        });
       },
-      { threshold: [0.3, 0.7, 1] }
+      { threshold: [0.1, 0.3, 0.5, 0.7, 1] }
     );
 
     // Observe all reel containers
@@ -165,6 +177,27 @@ const Reels = () => {
     }
   };
 
+  const showTooltip = (reelId: number) => {
+    setActiveTooltip(reelId);
+
+    if (tooltipTimeout.current) {
+      clearTimeout(tooltipTimeout.current);
+    }
+
+    tooltipTimeout.current = setTimeout(() => {
+      setActiveTooltip(null);
+    }, 1500);
+  };
+
+  // Clean up tooltip timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeout.current) {
+        clearTimeout(tooltipTimeout.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="h-[100dvh] flex flex-col bg-background">
       <Header />
@@ -208,6 +241,7 @@ const Reels = () => {
                 <div
                   onDoubleClick={(e) => {
                     e.preventDefault();
+                    showTooltip(reel.id);
                     navigate(`/camera`);
                   }}
                   className="w-full h-full max-w-md relative"
@@ -218,13 +252,23 @@ const Reels = () => {
                     }}
                     src={reel.video_url}
                     className="w-full h-full object-cover rounded-lg"
-                    controls
+                    autoPlay
                     playsInline
                     loop
                     muted
                   />
                   <div className="absolute bottom-4 left-4 bg-background/70 px-3 py-1 rounded-full text-sm">
                     {reel.user_email.split("@")[0]}
+                  </div>
+                  {/* Play/Pause indicator - appears briefly on interaction */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div
+                      className={`text-white text-sm bg-black/50 px-4 py-2 rounded-full transition-opacity duration-300 ${
+                        activeTooltip === reel.id ? "opacity-80" : "opacity-0"
+                      }`}
+                    >
+                      Double-tap to create
+                    </div>
                   </div>
                 </div>
               </div>

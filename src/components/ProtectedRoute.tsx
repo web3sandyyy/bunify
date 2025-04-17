@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 type ProtectedRouteProps = {
@@ -8,6 +8,7 @@ type ProtectedRouteProps = {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   // Check if user email exists in localStorage as a fallback
   const userEmail = localStorage.getItem("userEmail");
@@ -23,7 +24,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // If no user is authenticated and no email in localStorage, redirect to login
   if (!user && !userEmail) {
-    return <Navigate to="/login" replace />;
+    // Pass the current location so we can redirect back after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // User is authenticated, render the protected content

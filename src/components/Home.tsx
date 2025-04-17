@@ -9,10 +9,12 @@ import Header from "./Header";
 import Camera from "./Camera";
 import Filters from "./Filters";
 import VideoPreview from "./VideoPreview";
+import { useSplashScreen } from "../context/SplashScreenContext";
 
 // Main Home Component
 const Home = () => {
   const licenseKey = import.meta.env.VITE_DEEPAR_LICENSE_KEY;
+  const { hasSeenSplash, setHasSeenSplash } = useSplashScreen();
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
@@ -28,17 +30,22 @@ const Home = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(!hasSeenSplash);
 
   // Handle splash screen
   const handleSplashComplete = () => {
     setShowSplash(false);
+    setHasSeenSplash(true);
     // We wait for splash to complete before initializing camera
     checkCameraPermission();
   };
 
   useEffect(() => {
-    // The splash screen will trigger camera permission check when it completes
+    // If we've already seen the splash, initialize the camera directly
+    if (hasSeenSplash) {
+      checkCameraPermission();
+    }
+
     return () => {
       // Cleanup DeepAR when component unmounts
       if (deepARRef.current) {
@@ -49,7 +56,7 @@ const Home = () => {
         URL.revokeObjectURL(videoUrl);
       }
     };
-  }, []);
+  }, [hasSeenSplash]);
 
   // When permission state changes, initialize DeepAR if granted
   useEffect(() => {

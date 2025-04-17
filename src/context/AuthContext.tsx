@@ -16,9 +16,9 @@ interface AuthContextProps {
   user: User | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
@@ -59,18 +59,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         setError(error.message);
+        return false;
       } else if (data?.user) {
         setUser(data.user as User);
+        return true;
       }
+      return false;
     } catch (error) {
       setError("An unexpected error occurred");
       console.error("Login error:", error);
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (
+    email: string,
+    password: string
+  ): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
@@ -79,18 +86,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         setError(error.message);
+        return false;
       } else if (data?.user) {
         setUser(data.user as User);
+        return true;
       }
+      return false;
     } catch (error) {
       setError("An unexpected error occurred");
       console.error("Registration error:", error);
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
@@ -99,12 +110,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         setError(error.message);
+        return false;
       } else {
         setUser(null);
+        return true;
       }
     } catch (error) {
       setError("An unexpected error occurred");
       console.error("Logout error:", error);
+      return false;
     } finally {
       setLoading(false);
     }
