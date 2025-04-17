@@ -9,6 +9,7 @@ import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Profile from "./components/Profile";
+import Reels from "./components/Reels";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import "./App.css";
@@ -20,6 +21,22 @@ function App() {
         <Routes>
           <Route
             path="/"
+            element={
+              <ProtectedRoute>
+                <Reels />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reel/:id"
+            element={
+              <ProtectedRoute>
+                <Reels />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/camera"
             element={
               <ProtectedRoute>
                 <Home />

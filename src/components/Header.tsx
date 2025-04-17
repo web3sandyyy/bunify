@@ -1,5 +1,5 @@
-import { User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { User, Camera, Film } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo/logo1.png";
 import { Button } from "./ui/button";
 import {
@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
 
   const goToProfile = () => {
@@ -34,6 +35,33 @@ const Header = () => {
             Bunify
           </h1>
         </Link>
+
+        {user && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant={
+                location.pathname === "/" ||
+                location.pathname.startsWith("/reel/")
+                  ? "default"
+                  : "ghost"
+              }
+              size="sm"
+              onClick={() => navigate("/")}
+            >
+              <Film className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Reels</span>
+            </Button>
+
+            <Button
+              variant={location.pathname === "/camera" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => navigate("/camera")}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Camera</span>
+            </Button>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-2">

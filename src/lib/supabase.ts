@@ -289,3 +289,25 @@ export const getUserReels = async () => {
     return { error: { message: "Failed to fetch reels" } };
   }
 };
+
+/**
+ * Gets all reels from all users
+ * @returns Object containing data or error
+ */
+export const getAllReels = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("reels")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+
+    if (error) {
+      return { error };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Error in getAllReels:", error);
+    return { error: { message: "Failed to fetch reels" } };
+  }
+};
